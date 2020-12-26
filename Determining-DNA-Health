@@ -1,0 +1,152 @@
+import math
+import os
+import random
+import re
+import sys
+
+from collections import deque,defaultdict
+      
+class Tree:
+    def __init__(self,str_list,health):
+        self.leaf=set()
+        self.last=0
+        self.Dict=[{}]
+        self.parent={}
+        self.map_c={}
+        self.index=defaultdict(list)
+        for c in range(len(str_list)):
+            node=0
+            string=str_list[c]
+            for char in string:
+                if char in self.Dict[node]:
+                    node=self.Dict[node][char]
+                else:
+                    self.last+=1
+                    self.Dict.append({})
+                    self.Dict[node][char]=self.last
+                    node=self.last
+            self.map_c[c]=node
+            self.leaf.add(node)
+ 
+        self.SuffixLink=[0]*(self.last+1)
+        self.GenerateSuffixLink()
+        self.GenerateParentLink()
+        
+        
+    def GenerateParentLink(self):
+        queue=deque()
+        queue.append(0)
+        while queue:
+            for link in self.Dict[queue[0]]:
+                Parent=self.SuffixLink[self.Dict[queue[0]][link]]
+                if Parent in self.leaf or Parent in self.parent:
+                    self.parent[self.Dict[queue[0]][link]]=Parent
+                queue.append(self.Dict[queue[0]][link])
+            queue.popleft()
+
+    def GenerateSuffixLink(self):
+        queue=deque()
+        queue.append(0)
+        while queue:
+            for link in self.Dict[queue[0]]:
+                Parent=queue[0]
+                while Parent!=0 and link not in self.Dict[self.SuffixLink[Parent]]:
+                    Parent=self.SuffixLink[Parent]
+                if Parent==0:
+                    self.SuffixLink[self.Dict[queue[0]][link]]=0
+                elif link in self.Dict[self.SuffixLink[Parent]]:
+                    self.SuffixLink[self.Dict[queue[0]][link]]=self.Dict[self.SuffixLink[Parent]][link]
+                queue.append(self.Dict[queue[0]][link])
+            queue.popleft()
+      
+        
+def traverse(d,mytree):
+    visited=defaultdict(int)     
+    length=len(d)
+    node=0
+    for i in range(length):
+        try:
+            node=mytree.Dict[node][d[i]]
+        except:
+            node=mytree.SuffixLink[node]
+            while node!=0 and d[i] not in mytree.Dict[node]:
+                node=mytree.SuffixLink[node]
+            if d[i] in mytree.Dict[node]:
+                node=mytree.Dict[node][d[i]]
+        visited[node]+=1
+    return visited
+
+def compute(dp,visited):   
+    result=0
+    
+    for key in visited:
+        if key not in used:
+            cur=key
+            tmp=dp[cur]
+            while cur in my_tree.parent:
+                cur=my_tree.parent[cur]
+                tmp+=dp[cur]
+            cur=key
+            used[cur]=tmp
+            while cur in my_tree.parent:
+                tmp-=dp[cur]
+                cur=my_tree.parent[cur]
+                used[cur]=tmp
+            
+        
+        result+=visited[key]*used[key]
+  
+    return result
+
+if __name__ == '__main__':
+    n = int(input())
+
+    genes = input().rstrip().split()
+
+    health = list(map(int, input().rstrip().split()))
+    
+    my_tree=Tree(genes,health)
+    
+
+    s = int(input())
+    Maximum=-math.inf
+    Minimum=math.inf
+    first_d=defaultdict(list)
+    last_d=defaultdict(list)
+    dp=defaultdict(int)
+    maximum=0
+    for s_itr in range(s):
+        firstLastd = input().split()
+
+        first = int(firstLastd[0])
+        
+
+        last = int(firstLastd[1])
+        if last>maximum:
+            maximum=last
+        
+       
+        d = firstLastd[2]
+        
+        visited=traverse(d,my_tree)
+        l=[visited,0,0]
+        first_d[first].append(l)
+        last_d[last].append(l)
+    
+    for i in range(maximum+1):
+        cur=my_tree.map_c[i]
+        dp[cur]+=health[i]
+        used={}
+        for test in first_d[i+1]:
+            test[1]=compute(dp,test[0])
+        for test in last_d[i]:
+            test[2]=compute(dp,test[0])
+    for ind in last_d:
+        for test in last_d[ind]:
+            tmp=test[2]-test[1]
+            if tmp>Maximum:
+                Maximum=tmp
+            if tmp<Minimum:
+                Minimum=tmp
+
+    print(Minimum,Maximum)
